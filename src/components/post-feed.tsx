@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import type { Post, PostsResponse } from "../types";
 import { PostCard } from "./post-card";

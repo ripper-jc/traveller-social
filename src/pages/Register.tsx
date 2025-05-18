@@ -1,5 +1,3 @@
-import type React from "react";
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth-provider";

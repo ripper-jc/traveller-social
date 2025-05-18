@@ -1,5 +1,3 @@
-import type React from "react";
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
