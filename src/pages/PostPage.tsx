@@ -4,12 +4,18 @@ import { Navbar } from "../components/Navbar";
 import { PostCard } from "../components/post-card";
 import { TrendingPanel } from "../components/trending-panel";
 import { BackToTopButton } from "../components/back-to-top-button";
-import axiosInstance from "@/lib/axios";
-import type { Post } from "../types";
+import axiosInstance, { handleApiError } from "@/lib/axios";
+import type { Post, Comment as CommentType } from "../types";
 import { Button } from "../components/ui/button";
 import { ArrowLeft, Send } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
+import {
+  PostSkeleton,
+  CommentSkeleton,
+  LoadingSpinner,
+} from "../components/ui/skeletons";
+import { ErrorDisplay, InlineError } from "../components/ui/error-display";
 
 interface SinglePostResponse {
   id: string;
@@ -24,23 +30,20 @@ interface SinglePostResponse {
     profileImageUrl: string | null;
   };
   likedByCurrentUser: boolean;
-  // The backend may return these directly or nested in author
   username?: string;
   profileImageUrl?: string | null;
 }
 
-// Comment interfaces
-interface CommentUser {
-  username: string;
-  profileImageUrl: string | null;
-}
-
+// Use adapted comment interface for API response
 interface Comment {
   id: string;
   userId: string;
   text: string;
   createdAt: string;
-  user: CommentUser;
+  user: {
+    username: string;
+    profileImageUrl: string | null;
+  };
 }
 
 interface CommentsResponse {
@@ -96,11 +99,10 @@ function PostPage() {
         };
 
         setPost(postData);
+        setError(null);
       } catch (err) {
         console.error("Error fetching post:", err);
-        setError(
-          "Failed to load post. The post may have been deleted or you may not have permission to view it."
-        );
+        setError(handleApiError(err));
       } finally {
         setIsLoading(false);
       }
@@ -121,7 +123,10 @@ function PostPage() {
 
       try {
         const response = await axiosInstance.get<CommentsResponse>(
-          `/posts/${postId}/comments?page=${page}&size=10`
+          `/posts/${postId}/comments`,
+          {
+            params: { page, size: 10 },
+          }
         );
 
         const newComments = response.data.comments;
@@ -136,7 +141,7 @@ function PostPage() {
         setHasMoreComments(response.data.hasNext);
       } catch (err) {
         console.error("Error fetching comments:", err);
-        setCommentsError("Failed to load comments. Please try again later.");
+        setCommentsError(handleApiError(err));
       } finally {
         setIsLoadingComments(false);
       }
@@ -152,6 +157,7 @@ function PostPage() {
     if (!commentText.trim() || !postId) return;
 
     setIsSubmittingComment(true);
+    setCommentsError(null);
 
     try {
       await axiosInstance.post(`/posts/${postId}/comments`, {
@@ -171,7 +177,7 @@ function PostPage() {
       }
     } catch (err) {
       console.error("Error submitting comment:", err);
-      setCommentsError("Failed to submit comment. Please try again.");
+      setCommentsError(handleApiError(err));
     } finally {
       setIsSubmittingComment(false);
     }
@@ -187,6 +193,17 @@ function PostPage() {
   const handleGoBack = () => {
     navigate(-1);
   };
+
+  const handleRetry = () => {
+    if (postId) {
+      setIsLoading(true);
+      setError(null);
+      setCommentsError(null);
+      // Re-fetch post and comments
+      setPage(0);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -205,16 +222,17 @@ function PostPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <div className="space-y-6">
+              <PostSkeleton />
             </div>
           ) : error ? (
-            <div className="rounded-lg border bg-card p-8 text-center">
-              <p className="text-lg text-muted-foreground">{error}</p>
-              <Button className="mt-4" onClick={handleGoBack}>
-                Go back
-              </Button>
-            </div>
+            <ErrorDisplay
+              message={error}
+              action={{
+                label: "Go back",
+                onClick: handleGoBack,
+              }}
+            />
           ) : post ? (
             <div className="space-y-6">
               <PostCard post={post} />
@@ -258,11 +276,7 @@ function PostPage() {
                     </div>
                   </form>
 
-                  {commentsError && (
-                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                      {commentsError}
-                    </div>
-                  )}
+                  {commentsError && <InlineError message={commentsError} />}
 
                   {/* Comments list */}
                   {comments.length > 0 ? (
@@ -308,16 +322,23 @@ function PostPage() {
                             onClick={loadMoreComments}
                             disabled={isLoadingComments}
                           >
-                            {isLoadingComments
-                              ? "Loading..."
-                              : "Load more comments"}
+                            {isLoadingComments ? (
+                              <div className="flex items-center gap-2">
+                                <LoadingSpinner size="small" />
+                                <span>Loading...</span>
+                              </div>
+                            ) : (
+                              "Load more comments"
+                            )}
                           </Button>
                         </div>
                       )}
                     </div>
                   ) : isLoadingComments ? (
-                    <div className="py-4 flex justify-center">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    <div className="space-y-4 py-2">
+                      {[1, 2, 3].map((i) => (
+                        <CommentSkeleton key={i} />
+                      ))}
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground text-sm py-4">

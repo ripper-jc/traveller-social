@@ -9,8 +9,8 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Textarea } from "./ui/textarea";
-import { toast } from "sonner";
-import axiosInstance from "@/lib/axios";
+import { ErrorDisplay, InlineError } from "./ui/error-display";
+import axiosInstance, { handleApiError } from "@/lib/axios";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -21,6 +21,11 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   const [content, setContent] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{
+    content?: string;
+    images?: string;
+  }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset form when modal closes
@@ -28,6 +33,8 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     if (!isSubmitting) {
       setContent("");
       setImages([]);
+      setError(null);
+      setValidationErrors({});
       onClose();
     }
   };
@@ -42,24 +49,36 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     const filesToProcess = files.slice(0, remainingSlots);
 
     if (files.length > remainingSlots) {
-      toast.error("Too many images", {
-        description: `You can only upload ${remainingSlots} more image(s). Maximum 5 images per post.`,
-      });
+      setValidationErrors((prev) => ({
+        ...prev,
+        images: `You can only upload ${remainingSlots} more image(s). Maximum 5 images per post.`,
+      }));
+      setTimeout(() => {
+        setValidationErrors((prev) => ({ ...prev, images: undefined }));
+      }, 3000);
     }
 
     // Filter valid files
     const validFiles = filesToProcess.filter((file) => {
       if (!file.type.startsWith("image/")) {
-        toast.error("Invalid file type", {
-          description: "Please select only image files.",
-        });
+        setValidationErrors((prev) => ({
+          ...prev,
+          images: "Please select only image files.",
+        }));
+        setTimeout(() => {
+          setValidationErrors((prev) => ({ ...prev, images: undefined }));
+        }, 3000);
         return false;
       }
 
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("File too large", {
-          description: "Please select images smaller than 10MB.",
-        });
+        setValidationErrors((prev) => ({
+          ...prev,
+          images: "Please select images smaller than 10MB.",
+        }));
+        setTimeout(() => {
+          setValidationErrors((prev) => ({ ...prev, images: undefined }));
+        }, 3000);
         return false;
       }
 
@@ -82,18 +101,22 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   // Submit post
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setValidationErrors({});
+
+    // Validate inputs
+    const errors: typeof validationErrors = {};
 
     if (!content.trim()) {
-      toast.error("Content required", {
-        description: "Please add some text to your post.",
-      });
-      return;
+      errors.content = "Please add some text to your post.";
     }
 
     if (images.length === 0) {
-      toast.error("Image required", {
-        description: "Please upload at least one image for your post.",
-      });
+      errors.images = "Please upload at least one image for your post.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return;
     }
 
@@ -116,16 +139,10 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
         },
       });
 
-      toast.success("Post created!", {
-        description: "Your travel post has been published successfully.",
-      });
-
       handleClose();
     } catch (error) {
       console.error("Error creating post:", error);
-      toast.error("Error", {
-        description: "Failed to create post. Please try again.",
-      });
+      setError(handleApiError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -158,14 +175,21 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {error && <ErrorDisplay message={error} />}
+
             {/* Text Content */}
-            <Textarea
-              placeholder="Share your travel experience..."
-              className="min-h-32 resize-none"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Share your travel experience..."
+                className="min-h-32 resize-none"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={isSubmitting}
+              />
+              {validationErrors.content && (
+                <InlineError message={validationErrors.content} />
+              )}
+            </div>
 
             {/* Image Upload Area */}
             <div className="space-y-4">
@@ -174,8 +198,11 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                 <h3 className="text-sm font-medium">
                   Images ({images.length}/5)
                 </h3>
-
               </div>
+
+              {validationErrors.images && (
+                <InlineError message={validationErrors.images} />
+              )}
 
               {/* Hidden File Input */}
               <input

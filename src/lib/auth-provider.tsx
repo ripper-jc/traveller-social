@@ -5,13 +5,13 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import axios from "axios";
+import axiosInstance from "./axios";
 
 interface User {
   id: string;
   username: string;
   email: string;
-  token?: string; // Added token property
+  token?: string;
 }
 
 interface AuthContextType {
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:8080/users/login", {
+      const response = await axiosInstance.post("/users/login", {
         username,
         password,
       });
@@ -79,14 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     setIsLoading(true);
     try {
-      const response = await axios.post(
-        "http://localhost:8080/users/register",
-        {
-          username,
-          email,
-          password,
-        }
-      );
+      const response = await axiosInstance.post("/users/register", {
+        username,
+        email,
+        password,
+      });
 
       const userData = response.data;
       setUser(userData);

@@ -39,3 +39,19 @@ export interface Comment {
   author: User;
   postId: string;
 }
+
+// New standardized API response interfaces
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  status: number;
+}
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  currentPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}

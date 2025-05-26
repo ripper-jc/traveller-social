@@ -14,6 +14,7 @@ import { useAuth } from "../lib/auth-provider";
 import { useTheme } from "./theme-provider";
 import { useState, useEffect } from "react";
 import { CreatePostModal } from "./create-post-modal";
+import { NavbarSkeleton } from "./ui/skeletons";
 
 interface NavbarProps {}
 
@@ -25,7 +26,7 @@ export function Navbar({}: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  
+
   const openCreatePostModal = () => setIsCreatePostModalOpen(true);
   const closeCreatePostModal = () => setIsCreatePostModalOpen(false);
 
@@ -65,7 +66,7 @@ export function Navbar({}: NavbarProps) {
               </span>
             </Link>
           </div>
-          <div className="animate-pulse h-8 w-32 bg-muted rounded-md"></div>
+          <NavbarSkeleton />
         </div>
       </header>
     );
@@ -73,104 +74,104 @@ export function Navbar({}: NavbarProps) {
 
   return (
     <>
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center">
-            <span className="text-xl font-bold text-foreground hover:text-primary">
-              TravelGram
-            </span>
-          </Link>
-        </div>
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center">
+              <span className="text-xl font-bold text-foreground hover:text-primary">
+                TravelGram
+              </span>
+            </Link>
+          </div>
 
-        {user && (
-          <form
-            onSubmit={handleSearch}
-            className="hidden md:flex md:w-1/3 lg:w-1/4"
-          >
-            <div className="relative w-full">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search travelers or locations..."
-                className="w-full pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </form>
-        )}
-
-        <nav className="flex items-center gap-2">
-          {mounted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="mr-2 hover:bg-accent"
-              aria-label={`Switch to ${
-                theme === "dark" ? "light" : "dark"
-              } mode`}
+          {user && (
+            <form
+              onSubmit={handleSearch}
+              className="hidden md:flex md:w-1/3 lg:w-1/4"
             >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search travelers or locations..."
+                  className="w-full pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </form>
           )}
 
-          {user ? (
-            <>
+          <nav className="flex items-center gap-2">
+            {mounted && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-accent"
-                onClick={openCreatePostModal}
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="mr-2 hover:bg-accent"
+                aria-label={`Switch to ${
+                  theme === "dark" ? "light" : "dark"
+                } mode`}
               >
-                <PlusSquare className="h-5 w-5" />
-                <span className="sr-only">Create post</span>
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
               </Button>
+            )}
+            {user ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-accent"
+                  onClick={openCreatePostModal}
+                >
+                  <PlusSquare className="h-5 w-5" />
+                  <span className="sr-only">Create post</span>
+                </Button>
 
-              <Button
-                asChild
-                variant="ghost"
-                size="icon"
-                className="hover:bg-accent"
-              >
-                <Link to="/profile">
-                  <User className="h-5 w-5" />
-                  <span className="sr-only">Profile</span>
-                </Link>
-              </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-accent"
+                >
+                  <Link to="/profile">
+                    <User className="h-5 w-5" />
+                    <span className="sr-only">Profile</span>
+                  </Link>
+                </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                className="hover:bg-accent hover:text-destructive"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="sr-only">Logout</span>
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button asChild variant="outline" className="mr-2">
-                <Link to="/login">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Login
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link to="/register">Register</Link>
-              </Button>
-            </>
-          )}        </nav>
-      </div>
-    </header>
-    <CreatePostModal
-      isOpen={isCreatePostModalOpen}
-      onClose={closeCreatePostModal}
-    />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="hover:bg-accent hover:text-destructive"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="sr-only">Logout</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="outline" className="mr-2">
+                  <Link to="/login">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Login
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/register">Register</Link>
+                </Button>
+              </>
+            )}{" "}
+          </nav>
+        </div>
+      </header>
+      <CreatePostModal
+        isOpen={isCreatePostModalOpen}
+        onClose={closeCreatePostModal}
+      />
     </>
   );
 }

@@ -1,8 +1,8 @@
 import "./App.css";
 import { Navigate, Route, Routes } from "react-router-dom";
 import MainPage from "./pages/MainPage";
-import LoginPage from "./pages/Login";
-import RegisterPage from "./pages/Register";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import PostPage from "./pages/PostPage";
 import { useAuth } from "./lib/auth-provider";
 

@@ -38,4 +38,15 @@ axiosInstance.interceptors.response.use(
   }
 );
 
+// Helper function for standardized error handling
+export const handleApiError = (error: any): string => {
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  } else if (error.message) {
+    return error.message;
+  } else {
+    return "An unexpected error occurred. Please try again.";
+  }
+};
+
 export default axiosInstance;

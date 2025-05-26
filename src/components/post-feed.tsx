@@ -3,49 +3,12 @@ import type { Post, PostsResponse } from "../types";
 import { PostCard } from "./post-card";
 import { Button } from "./ui/button";
 import { Clock, Flame } from "lucide-react";
-import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
-import axiosInstance from "@/lib/axios";
+import axiosInstance, { handleApiError } from "@/lib/axios";
 import { useAuth } from "../lib/auth-provider";
-
-// Mock data for posts
-const mockPosts: Post[] = [
-  {
-    id: "1",
-    userId: "1",
-    text: "Just arrived in Bali! The beaches here are absolutely stunning. Can't wait to explore more of this paradise island.",
-    imageUrls: ["https://via.placeholder.com/800x500"],
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    username: "John Traveler",
-    profileImageUrl: "https://via.placeholder.com/100",
-    likeCount: 24,
-    commentCount: 5,
-    likedByCurrentUser: false,
-  },
-  {
-    id: "2",
-    userId: "2",
-    text: "Hiking through the Swiss Alps was an incredible experience. The views were breathtaking at every turn. Highly recommend for any nature lovers!",
-    imageUrls: ["https://via.placeholder.com/800x500"],
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    username: "Sarah Explorer",
-    profileImageUrl: "https://via.placeholder.com/100",
-    likeCount: 87,
-    commentCount: 12,
-    likedByCurrentUser: true,
-  },
-  {
-    id: "3",
-    userId: "3",
-    text: "The street food in Bangkok is out of this world! So many flavors and everything is so affordable. My taste buds are in heaven.",
-    imageUrls: ["https://via.placeholder.com/800x500"],
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    username: "Mike Foodie",
-    profileImageUrl: "https://via.placeholder.com/100",
-    likeCount: 56,
-    commentCount: 8,
-    likedByCurrentUser: false,
-  },
-];
+import { mockPosts } from "../data/mock-data";
+import { PostSkeleton } from "./ui/skeletons"; // Import our new skeleton component
+import { LoadingSpinner } from "./ui/skeletons";
+import { ErrorDisplay } from "./ui/error-display";
 
 type FilterType = "latest" | "popular";
 
@@ -53,11 +16,21 @@ export function PostFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [filter, setFilter] = useState<FilterType>("latest");
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const { user } = useAuth();
-  const pageSize = 1;
+  const pageSize = 1; // Increased from 1 to a more practical value
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Reset page when filter changes
+  const handleFilterChange = (newFilter: FilterType) => {
+    if (filter !== newFilter) {
+      setFilter(newFilter);
+      setPage(0); // Reset to first page when changing filters
+      setPosts([]); // Clear existing posts to avoid mixing
+    }
+  };
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -67,19 +40,16 @@ export function PostFeed() {
         const isNew = filter === "latest";
         const isPopular = filter === "popular";
 
-        // Build the query URL
-        const queryParams = new URLSearchParams({
-          page: page.toString(),
-          size: pageSize.toString(),
-          isPopular: isPopular.toString(),
-          isNew: isNew.toString(),
+        // Use params object with axiosInstance for cleaner code
+        const response = await axiosInstance.get<PostsResponse>("/posts", {
+          params: {
+            page: page.toString(),
+            size: pageSize.toString(),
+            isPopular: isPopular.toString(),
+            isNew: isNew.toString(),
+          },
         });
-        console.log(
-          "Fetching posts with query params:",
-          queryParams.toString()
-        );
 
-        const response = await axiosInstance.get(`/posts?${queryParams}`);
         const responseData: PostsResponse = response.data;
 
         // If first page, replace posts. Otherwise, append.
@@ -91,8 +61,11 @@ export function PostFeed() {
 
         // Check if there are more posts to load
         setHasMore(responseData.hasNext);
+        setError(null);
       } catch (error) {
         console.error("Error fetching posts:", error);
+        setError(handleApiError(error));
+
         // Fallback to mock data for development
         if (process.env.NODE_ENV === "development") {
           const filteredPosts = [...mockPosts];
@@ -108,6 +81,7 @@ export function PostFeed() {
           }
 
           setPosts(filteredPosts);
+          setError(null); // Clear error if we successfully load mock data
         }
       } finally {
         setIsLoading(false);
@@ -137,6 +111,11 @@ export function PostFeed() {
     };
   }, [hasMore, isLoading]);
 
+  const handleRetry = () => {
+    setPage(0);
+    setError(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -145,7 +124,7 @@ export function PostFeed() {
           <Button
             variant={filter === "latest" ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter("latest")}
+            onClick={() => handleFilterChange("latest")}
             className="hover:bg-primary/30 transition-all duration-200"
           >
             <Clock className="mr-1 h-4 w-4" />
@@ -154,7 +133,7 @@ export function PostFeed() {
           <Button
             variant={filter === "popular" ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter("popular")}
+            onClick={() => handleFilterChange("popular")}
             className="hover:bg-primary/30 transition-all duration-200"
           >
             <Flame className="mr-1 h-4 w-4" />
@@ -163,45 +142,20 @@ export function PostFeed() {
         </div>
       </div>
 
+      {error && (
+        <ErrorDisplay
+          message={error}
+          action={{
+            label: "Retry",
+            onClick: handleRetry,
+          }}
+        />
+      )}
+
       {isLoading && page === 0 ? (
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-full bg-muted/60 animate-pulse" />
-                  <div className="space-y-2">
-                    <div className="h-4 w-32 rounded bg-muted/60 animate-pulse" />
-                    <div className="h-3 w-24 rounded bg-muted/60 animate-pulse" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="px-4 pb-3 space-y-2">
-                  <div className="h-4 w-full rounded bg-muted/60 animate-pulse" />
-                  <div className="h-4 w-2/3 rounded bg-muted/60 animate-pulse" />
-                </div>
-                <div className="relative aspect-[16/9] w-full">
-                  <div className="h-full w-full bg-muted/60 animate-pulse" />
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col p-4">
-                <div className="flex w-full items-center justify-between border-t pt-2">
-                  <div className="flex space-x-4">
-                    <div className="h-4 w-20 rounded bg-muted/60 animate-pulse" />
-                    <div className="h-4 w-24 rounded bg-muted/60 animate-pulse" />
-                  </div>
-                </div>
-                <div className="mt-2 flex w-full justify-between gap-4">
-                  {[1, 2, 3].map((btn) => (
-                    <div
-                      key={btn}
-                      className="h-8 flex-1 rounded bg-muted/60 animate-pulse"
-                    />
-                  ))}
-                </div>
-              </CardFooter>
-            </Card>
+            <PostSkeleton key={i} />
           ))}
         </div>
       ) : (
@@ -212,7 +166,7 @@ export function PostFeed() {
 
           {isLoading && page > 0 && (
             <div className="flex justify-center py-4">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              <LoadingSpinner />
             </div>
           )}
 
@@ -225,7 +179,7 @@ export function PostFeed() {
             </p>
           )}
 
-          {!isLoading && posts.length === 0 && (
+          {!isLoading && posts.length === 0 && !error && (
             <div className="text-center py-8">
               <p className="text-lg text-muted-foreground">No posts found</p>
             </div>

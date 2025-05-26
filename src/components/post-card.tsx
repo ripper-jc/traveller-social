@@ -5,13 +5,12 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import type { Post } from "../types";
-import axiosInstance from "@/lib/axios";
+import axiosInstance, { handleApiError } from "@/lib/axios";
 import { useAuth } from "../lib/auth-provider";
-import { toast } from "sonner"; // Add Sonner import
+import { InlineError } from "./ui/error-display"; // Import the new error component
 // Import Swiper components and styles
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination } from 'swiper/modules';
-
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
 
 interface PostCardProps {
   post: Post;
@@ -69,9 +68,6 @@ export function PostCard({ post }: PostCardProps) {
     if (!user) {
       // Handle not logged in case
       setCommentError("You must be logged in to comment");
-      toast.error("Authentication required", {
-        description: "You must be logged in to comment",
-      });
       return;
     }
 
@@ -89,17 +85,13 @@ export function PostCard({ post }: PostCardProps) {
         commentCount: currentPost.commentCount + 1,
       });
 
-      toast.success("Comment posted successfully");
       setCommentText("");
       setIsCommenting(false);
 
       // You could also fetch the updated comments here if you wanted to display them
     } catch (error) {
       console.error("Error submitting comment:", error);
-      setCommentError("Failed to submit comment. Please try again.");
-      toast.error("Comment failed", {
-        description: "Failed to submit comment. Please try again.",
-      });
+      setCommentError(handleApiError(error));
     } finally {
       setIsSubmittingComment(false);
     }
@@ -139,7 +131,8 @@ export function PostCard({ post }: PostCardProps) {
         <CardContent className="p-0">
           <div className="px-4 pb-3">
             <p className="whitespace-pre-line">{currentPost.text}</p>
-          </div>          <div className="relative aspect-[16/9] w-full overflow-hidden">
+          </div>{" "}
+          <div className="relative aspect-[16/9] w-full overflow-hidden">
             {currentPost.imageUrls && currentPost.imageUrls.length > 0 && (
               <>
                 {currentPost.imageUrls.length === 1 ? (
@@ -236,9 +229,8 @@ export function PostCard({ post }: PostCardProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col space-y-2">
-              {commentError && (
-                <p className="text-sm text-destructive">{commentError}</p>
-              )}{" "}
+              {/* Use the new InlineError component */}
+              {commentError && <InlineError message={commentError} />}
               <div className="flex items-start space-x-2">
                 <Avatar className="h-8 w-8 mt-1">
                   <AvatarImage src="/placeholder.svg" alt="Your profile" />
