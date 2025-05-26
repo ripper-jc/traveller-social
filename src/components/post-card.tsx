@@ -8,6 +8,10 @@ import type { Post } from "../types";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "../lib/auth-provider";
 import { toast } from "sonner"; // Add Sonner import
+// Import Swiper components and styles
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination } from 'swiper/modules';
+
 
 interface PostCardProps {
   post: Post;
@@ -135,13 +139,37 @@ export function PostCard({ post }: PostCardProps) {
         <CardContent className="p-0">
           <div className="px-4 pb-3">
             <p className="whitespace-pre-line">{currentPost.text}</p>
-          </div>
-          <div className="relative aspect-[16/9] w-full overflow-hidden">
-            <img
-              src={currentPost.imageUrls[0] || "/placeholder.svg"}
-              alt="Post image"
-              className="h-full w-full object-cover transition-transform hover:scale-105"
-            />
+          </div>          <div className="relative aspect-[16/9] w-full overflow-hidden">
+            {currentPost.imageUrls && currentPost.imageUrls.length > 0 && (
+              <>
+                {currentPost.imageUrls.length === 1 ? (
+                  <img
+                    src={currentPost.imageUrls[0] || "/placeholder.svg"}
+                    alt="Post image"
+                    className="h-full w-full object-cover transition-transform hover:scale-105"
+                  />
+                ) : (
+                  <Swiper
+                    modules={[Navigation, Pagination]}
+                    navigation
+                    pagination={{ clickable: true }}
+                    spaceBetween={0}
+                    slidesPerView={1}
+                    className="h-full w-full post-swiper"
+                  >
+                    {currentPost.imageUrls.map((url, index) => (
+                      <SwiperSlide key={`slide-${currentPost.id}-${index}`}>
+                        <img
+                          src={url || "/placeholder.svg"}
+                          alt={`Post image ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                )}
+              </>
+            )}
           </div>
         </CardContent>
       </Link>{" "}

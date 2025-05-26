@@ -1,0 +1,33 @@
+/* Custom Swiper styles for post cards */
+.post-swiper .swiper-pagination-bullet {
+  background-color: #ffffff;
+  opacity: 0.6;
+}
+
+.post-swiper .swiper-pagination-bullet-active {
+  background-color: #ffffff;
+  opacity: 1;
+}
+
+.post-swiper .swiper-button-next,
+.post-swiper .swiper-button-prev {
+  color: white;
+  background-color: rgba(0, 0, 0, 0.3);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-swiper .swiper-button-next:after,
+.post-swiper .swiper-button-prev:after {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.post-swiper .swiper-button-next:hover,
+.post-swiper .swiper-button-prev:hover {
+  background-color: rgba(0, 0, 0, 0.5);
+}
