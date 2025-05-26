@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Post, PostsResponse } from "../types";
 import { PostCard } from "./post-card";
 import { Button } from "./ui/button";
@@ -56,7 +56,8 @@ export function PostFeed() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const { user } = useAuth();
-  const pageSize = 10;
+  const pageSize = 1;
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -116,70 +117,25 @@ export function PostFeed() {
     fetchPosts();
   }, [filter, page]);
 
-  // Function to load more posts
-  const loadMore = () => {
-    if (!isLoading && hasMore) {
-      setPage((prev) => prev + 1);
-    }
-  };
-
-  const handleLike = async (postId: string) => {
-    if (!user) {
-      // Handle not logged in case
-      return;
-    }
-
-    try {
-      // Optimistically update UI
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            const newLikedState = !post.likedByCurrentUser;
-            return {
-              ...post,
-              likeCount: newLikedState
-                ? post.likeCount + 1
-                : post.likeCount - 1,
-              likedByCurrentUser: newLikedState,
-            };
-          }
-          return post;
-        })
-      );
-
-      // Get the token
-      const user_token = localStorage.getItem("user_token");
-      await axiosInstance.post(
-        `/posts/${postId}/like`,
-        {}, // Empty request body
-        {
-          // Request config with headers
-          headers: {
-            Authorization: "Bearer " + user_token,
-          },
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          setPage((prev) => prev + 1);
         }
-      );
-    } catch (error) {
-      console.error("Error liking post:", error);
-
-      // Revert changes if request fails
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            const newLikedState = !post.likedByCurrentUser;
-            return {
-              ...post,
-              likeCount: newLikedState
-                ? post.likeCount - 1
-                : post.likeCount + 1,
-              likedByCurrentUser: !newLikedState,
-            };
-          }
-          return post;
-        })
-      );
+      },
+      { threshold: 0.1 }
+    );
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
     }
-  };
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMore, isLoading]);
 
   return (
     <div className="space-y-6">
@@ -251,7 +207,7 @@ export function PostFeed() {
       ) : (
         <div className="space-y-6">
           {posts.map((post) => (
-            <PostCard key={post.id} post={post} onLike={handleLike} />
+            <PostCard key={post.id} post={post} />
           ))}
 
           {isLoading && page > 0 && (
@@ -260,13 +216,8 @@ export function PostFeed() {
             </div>
           )}
 
-          {!isLoading && hasMore && (
-            <div className="flex justify-center pt-4">
-              <Button onClick={loadMore} variant="outline">
-                Load More
-              </Button>
-            </div>
-          )}
+          {/* Observer target element - replaces Load More button */}
+          {hasMore && <div ref={observerTarget} className="h-8 w-full" />}
 
           {!isLoading && !hasMore && posts.length > 0 && (
             <p className="text-center text-muted-foreground py-4">

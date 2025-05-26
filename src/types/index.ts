@@ -10,17 +10,6 @@ export interface User {
   commentCount: number;
 }
 
-// export interface Post_old {
-//   id: string
-//   content: string
-//   imageUrl: string
-//   createdAt: string
-//   author: User
-//   likes: number
-//   comments: number
-//   isLiked?: boolean
-// }
-
 export interface Post {
   id: string;
   userId: string;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth-provider";
+import { toast } from "sonner"; // Add Sonner import
 
 import axios from "axios";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register(username, email, password);
+      toast.success("Registration successful!");
       navigate("/");
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -92,8 +94,14 @@ export default function RegisterPage() {
           error.response.data.message ||
             "Registration failed. Please try again."
         );
+        toast.error("Registration failed", {
+          description: error.response.data.message || "Please try again.",
+        });
       } else {
         setApiError("An unexpected error occurred. Please try again.");
+        toast.error("Registration failed", {
+          description: "An unexpected error occurred. Please try again.",
+        });
       }
     } finally {
       setIsSubmitting(false);

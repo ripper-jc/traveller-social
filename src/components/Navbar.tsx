@@ -12,14 +12,27 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useAuth } from "../lib/auth-provider";
 import { useTheme } from "./theme-provider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { CreatePostModal } from "./create-post-modal";
 
-export function Navbar() {
+interface NavbarProps {}
+
+export function Navbar({}: NavbarProps) {
   const { user, logout, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  
+  const openCreatePostModal = () => setIsCreatePostModalOpen(true);
+  const closeCreatePostModal = () => setIsCreatePostModalOpen(false);
+
+  // After mounting, we can access the theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Don't show navbar on auth pages
   if (location.pathname === "/login" || location.pathname === "/register") {
@@ -59,6 +72,7 @@ export function Navbar() {
   }
 
   return (
+    <>
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
@@ -88,29 +102,32 @@ export function Navbar() {
         )}
 
         <nav className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="mr-2 hover:bg-accent"
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span className="sr-only">Toggle theme</span>
-          </Button>
+          {mounted && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="mr-2 hover:bg-accent"
+              aria-label={`Switch to ${
+                theme === "dark" ? "light" : "dark"
+              } mode`}
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          )}
 
           {user ? (
             <>
               <Button
-                asChild
                 variant="ghost"
                 size="icon"
                 className="hover:bg-accent"
+                onClick={openCreatePostModal}
               >
-                <Link to="/create">
-                  <PlusSquare className="h-5 w-5" />
-                  <span className="sr-only">Create post</span>
-                </Link>
+                <PlusSquare className="h-5 w-5" />
+                <span className="sr-only">Create post</span>
               </Button>
 
               <Button
@@ -147,9 +164,13 @@ export function Navbar() {
                 <Link to="/register">Register</Link>
               </Button>
             </>
-          )}
-        </nav>
+          )}        </nav>
       </div>
     </header>
+    <CreatePostModal
+      isOpen={isCreatePostModalOpen}
+      onClose={closeCreatePostModal}
+    />
+    </>
   );
 }
